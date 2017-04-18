@@ -1,27 +1,53 @@
 #include <gtk/gtk.h>
 #include "pcat.h"
+#include <string.h>
+#include <stdlib.h>
 /* Our callback.
  * The data passed to this function is printed to stdout */
 
 /* This callback quits the program */
-static gboolean delete_event( GtkWidget *widget,
-                              GdkEvent  *event,
-                              gpointer   data )
+char ethernet[1000][1000];
+char network[1000][1000];
+char transport[1000][5000];
+char payload[1000][5000];
+char app[1000][600];
+
+GtkTextBuffer *buff_ethernet;
+GtkTextBuffer *buff_network;
+GtkTextBuffer *buff_transport;
+GtkTextBuffer *buff_app;
+GtkTextBuffer *buff_payload;
+GtkWidget *net_text,*eth_text,*app_text,*pay_text,*trans_text;
+static gboolean delete_event( GtkWidget *widget, GdkEvent  *event, gpointer   data )
 {
     gtk_main_quit ();
     return FALSE;
 }
 
-static void trigger( GtkWidget *widget,
-                              GdkEvent  *event,
-                              gpointer   data )
+static void trigger( GtkWidget *widget, GdkEvent  *event, gpointer   data )
 {
     initiateCapture();
+}
+static void packet_display( GtkWidget *widget, GdkEvent  *event, gpointer   data )
+{
+    const char* label=gtk_button_get_label (GTK_BUTTON(widget));
+    int pos=atoi(label+6)-1;
+    printf("Position:%d\n",pos );
+    printf("%s\n", ethernet[pos]);
+    printf("%s\n", network[pos]);
+    printf("%s\n", transport[pos]);
+    printf("%s\n", app[pos]);
+    printf("%s\n", payload[pos]);
+    // gtk_text_buffer_insert_at_cursor (buff_ethernet,"HI",2);
+    // gtk_text_buffer_insert_at_cursor (buff_network,network[pos] ,strlen(network[pos]));
+    // gtk_text_buffer_insert_at_cursor (buff_transport,transport[pos] ,strlen(transport[pos]));
+    // gtk_text_buffer_insert_at_cursor (buff_app,app[pos] ,strlen(app[pos]));
+    // gtk_text_buffer_insert_at_cursor (buff_payload,payload[pos] ,strlen(payload[pos]));
 }
 
 void button_clicked(GtkWidget *widget, gpointer data)
 {
-  printf("%d\n",(int)data );
+  printf("%d\n",(gint) (glong)data );
 }
 
 int main( int   argc,
@@ -89,23 +115,57 @@ int main( int   argc,
         gtk_table_attach(GTK_TABLE(table), scrolled_window,  0, 21, i*5, 5*i+5, 
         GTK_FILL, GTK_FILL, 0, 0);
         gtk_widget_show (scrolled_window);
-        text=gtk_text_view_new();
-        gtk_text_view_set_editable(GTK_TEXT_VIEW(text), TRUE);
-        gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text), TRUE);
-        // gtk_table_attach(GTK_TABLE(table), text, 0, 10, i*2, 2*i+2, 
-        // GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 1, 1);
-        gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), text);
-        gtk_widget_show (text);
+        if(i==0){
+            eth_text=gtk_text_view_new_with_buffer (buff_ethernet);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(eth_text), TRUE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(eth_text), TRUE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), eth_text);
+            gtk_widget_show (eth_text);
+        }
+        if(i==1){
+            net_text=gtk_text_view_new_with_buffer (buff_network);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(net_text), TRUE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(net_text), TRUE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), net_text);
+            gtk_widget_show (net_text);
+        }
+        if(i==2){
+            trans_text=gtk_text_view_new_with_buffer (buff_transport);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(trans_text), TRUE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(trans_text), TRUE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), trans_text);
+            gtk_widget_show (trans_text);
+        }
+        if(i==3)
+        {
+            app_text=gtk_text_view_new_with_buffer (buff_app);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(app_text), TRUE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(app_text), TRUE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), app_text);
+            gtk_widget_show (app_text);
+        }
+        if(i==4){
+            pay_text=gtk_text_view_new_with_buffer (buff_payload);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(pay_text), TRUE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(pay_text), TRUE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), pay_text);
+            gtk_widget_show (pay_text);
+        }
     }
     char buffer[10];
     for (int i = 0; i < 1000; i++){
        // for (j = 0; j < 10; j++) {
           sprintf (buffer, "Packet %d\n", i+1);
-          button = gtk_toggle_button_new_with_label (buffer);
+          button = gtk_button_new_with_label (buffer);
           gtk_table_attach(GTK_TABLE(table2), button,0,1, i, i+1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 2, 1);
           g_signal_connect (G_OBJECT(button), "clicked",
-                      G_CALLBACK (button_clicked),(void*)i);
+                      G_CALLBACK (packet_display),NULL);
           gtk_widget_show (button);
+          sprintf(transport[i],"%s","");
+          sprintf(network[i],"%s","");
+          sprintf(app[i],"%s","");
+          sprintf(ethernet[i],"%s","");
+          sprintf(payload[i],"%s","");
        }
     /* Create second button */
        text=gtk_text_view_new();
