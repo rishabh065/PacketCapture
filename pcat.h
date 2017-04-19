@@ -3,16 +3,16 @@
 #define _pcat
 
 
-void ProcessPacket(unsigned char* , int);
-void print_ethernet_header(unsigned char*, int);
-void print_arp_packet(unsigned char * , int );
-void print_ip_header(unsigned char* , int);
-void print_icmp_packet(unsigned char* , int );
-void print_tcp_packet(unsigned char * , int );
-void print_udp_packet(unsigned char * , int );
-void print_http_header(unsigned char * , int );
-void print_dns_header(unsigned char* , int );
-void PrintData (unsigned char* , int);
+void Packet_Processor(unsigned char* , int);
+void Ethernet_Header_Decoder(unsigned char*, int);
+void ARP_Packet_Decoder(unsigned char * , int );
+void IP_Header_Decoder(unsigned char* , int);
+void ICMP_Packet_Decoder(unsigned char* , int );
+void TCP_Packet_Decoder(unsigned char * , int );
+void UDP_Packet_Decoder(unsigned char * , int );
+void HTTP_Packet_Header(unsigned char * , int );
+void DNS_Packet_Decoder(unsigned char* , int );
+void Print_Data_Dump (unsigned char* , int);
 void initiateCapture();
 
 #endif
