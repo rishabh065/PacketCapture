@@ -64,7 +64,7 @@ int main( int   argc,
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     gtk_widget_set_size_request (window, 1100, 700);
-    gtk_window_fullscreen ((GtkWindow *)window);
+    // gtk_window_fullscreen ((GtkWindow *)window);
 
     /* Set the window title */
     gtk_window_set_title (GTK_WINDOW (window), "P.C.A.T.");
@@ -111,7 +111,7 @@ int main( int   argc,
         gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 5);
 
         gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-                                    GTK_POLICY_ALWAYS, GTK_POLICY_ALWAYS);
+                                    GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
         gtk_table_attach(GTK_TABLE(table), scrolled_window,  0, 21, i*5, 5*i+5, 
         GTK_FILL, GTK_FILL, 0, 0);
         gtk_widget_show (scrolled_window);

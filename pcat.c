@@ -19,18 +19,52 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "pcat.h"
+#include <gtk/gtk.h>
+#include "pcat.h"
+#include <string.h>
+#include <stdlib.h>
+/* Our callback.
+ * The data passed to this function is printed to stdout */
 
-extern char ethernet[1000][300];
-extern char network[1000][400];
-extern char transport[1000][400];
-extern char app[1000][5000];
-extern char payload[1000][5000];
+/* This callback quits the program */
+char ethernet[1000][1000];
+char network[1000][1000];
+char transport[1000][5000];
+char payload[1000][5000];
+char app[1000][1000];
+GtkTextBuffer *buff_ethernet;
+GtkTextBuffer *buff_network;
+GtkTextBuffer *buff_transport;
+GtkTextBuffer *buff_app;
+GtkTextBuffer *buff_payload;
 
-extern char buff_ethernet[300];
-extern char buff_network[400];
-extern char buff_transport[400];
-extern char buff_app[5000];
-extern char buff_payload[5000];
+GtkWidget *net_text,*eth_text,*app_text,*pay_text,*trans_text;
+static gboolean delete_event( GtkWidget *widget, GdkEvent  *event, gpointer   data )
+{
+    gtk_main_quit ();
+    return FALSE;
+}
+
+static void trigger( GtkWidget *widget, GdkEvent  *event, gpointer   data )
+{
+    initiateCapture();
+}
+static void packet_display( GtkWidget *widget, GdkEvent  *event, gpointer   data )
+{
+    const char* label=gtk_button_get_label (GTK_BUTTON(widget));
+    int pos= atoi(label+6)-1;
+    gtk_text_buffer_set_text(buff_ethernet,ethernet[pos] ,strlen(ethernet[pos]));
+    gtk_text_buffer_set_text(buff_network,network[pos] ,strlen(network[pos]));
+    gtk_text_buffer_set_text(buff_transport,transport[pos] ,strlen(transport[pos]));
+    gtk_text_buffer_set_text(buff_app,app[pos] ,strlen(app[pos]));
+    gtk_text_buffer_set_text(buff_payload,payload[pos] ,strlen(payload[pos]));
+}
+
+void button_clicked(GtkWidget *widget, gpointer data)
+{
+  printf("%d\n",(gint) (glong)data );
+}
+
 char curr[5000];
 int counter[1000][4];
 FILE *logfile;
@@ -141,7 +175,7 @@ void ProcessPacket(unsigned char* buffer, int size)
          
         default: //Some Other Protocol like ARP etc.
             ++others;
-            // total--;
+            total--;
             break;
     }
     ++total;
@@ -155,14 +189,14 @@ void print_ethernet_header(unsigned char* Buffer, int Size)
      
     // sprintf(logfile, "\n");
     sprintf(curr, "Ethernet Header\n");
-    sprintf(curr,"%s",ethernet[total]);
+    sprintf(ethernet[total],"%s",curr);
     sprintf(curr, "   |-Destination Address : %.2X-%.2X-%.2X-%.2X-%.2X-%.2X \n", eth->h_dest[0] , eth->h_dest[1] , eth->h_dest[2] , eth->h_dest[3] , eth->h_dest[4] , eth->h_dest[5] );
     strcat(ethernet[total],curr);
     sprintf(curr, "   |-Source Address      : %.2X-%.2X-%.2X-%.2X-%.2X-%.2X \n", eth->h_source[0] , eth->h_source[1] , eth->h_source[2] , eth->h_source[3] , eth->h_source[4] , eth->h_source[5] );
     strcat(ethernet[total],curr);
     sprintf(curr, "   |-Protocol            : %u \n",(unsigned short)eth->h_proto);
     strcat(ethernet[total],curr);
-    printf("%s\n",ethernet[total] );
+    // printf("%s\n",ethernet[total] );
 }
 
 void print_arp_packet(unsigned char* Buffer, int Size)
@@ -172,7 +206,7 @@ void print_arp_packet(unsigned char* Buffer, int Size)
     int header_size = sizeof(struct ethhdr);
     struct ARPhdr *arph = (struct ARPhdr *)(Buffer  + header_size);
     sprintf(curr , "ARP Header\n");
-    sprintf(curr,"%s",network[total]);
+    sprintf(network[total],"%s",curr);
     sprintf(curr , "   |-Format of hardware address : %d \n",arph->ar_hrd);
     strcat(network[total],curr);
     sprintf(curr , "   |-Format of protocol address : %d \n",arph->ar_pro);
@@ -191,7 +225,7 @@ void print_arp_packet(unsigned char* Buffer, int Size)
     strcat(network[total],curr);
     sprintf(curr , "   |-Destination IP address     : %d.%d.%d.%d \n",arph->ar_tip[0],arph->ar_tip[1],arph->ar_tip[2],arph->ar_tip[3]);
     strcat(network[total],curr);
-    printf("%s\n",network[total] );
+    // printf("%s\n",network[total] );
 }
  
 void print_ip_header(unsigned char* Buffer, int Size)
@@ -208,7 +242,7 @@ void print_ip_header(unsigned char* Buffer, int Size)
      
     // sprintf(logfile, "\n");
     sprintf(curr, "IP Header\n");
-    sprintf(curr,"%s",network[total]);
+    sprintf(network[total],"%s",curr);
     sprintf(curr, "   |-IP Version        : %d\n",(unsigned int)iph->version);
     strcat(network[total],curr);
     sprintf(curr, "   |-IP Header Length  : %d DWORDS or %d Bytes\n",(unsigned int)iph->ihl,((unsigned int)(iph->ihl))*4);
@@ -232,7 +266,7 @@ void print_ip_header(unsigned char* Buffer, int Size)
     strcat(network[total],curr);
     sprintf(curr, "   |-Destination IP   : %s\n",inet_ntoa(dest.sin_addr));
     strcat(network[total],curr);
-    printf("%s\n",network[total] );
+    // printf("%s\n",network[total] );
 }
  
 void print_tcp_packet(unsigned char* Buffer, int Size)
@@ -251,7 +285,7 @@ void print_tcp_packet(unsigned char* Buffer, int Size)
     print_ip_header(Buffer,Size);
     // sprintf(logfile, "\n");
     sprintf(curr, "TCP Header\n");
-    sprintf(curr,"%s",transport[total]);
+    sprintf(transport[total],"%s",curr);
     sprintf(curr, "   |-Source Port      : %u\n",ntohs(tcph->source));
     strcat(transport[total],curr);
     sprintf(curr, "   |-Destination Port : %u\n",ntohs(tcph->dest));
@@ -292,9 +326,9 @@ void print_tcp_packet(unsigned char* Buffer, int Size)
     {
         print_dns_header(Buffer, Size);
     }
-    printf("%s\n",transport[total] );
+    // printf("%s\n",transport[total] );
     sprintf(curr, "                        DATA Dump                         \n");
-    sprintf(curr,"%s",payload[total]);    
+    sprintf(payload[total],"%s",curr);    
     sprintf(curr, "IP Header\n");
     strcat(payload[total],curr);
     PrintData(Buffer,iphdrlen);
@@ -325,7 +359,7 @@ void print_udp_packet(unsigned char *Buffer , int Size)
      
     print_ip_header(Buffer,Size);           
     sprintf(curr, "UDP Header\n");
-    sprintf(curr,"%s",transport[total]);
+    sprintf(transport[total],"%s",curr);
     sprintf(curr, "   |-Source Port      : %d\n" , ntohs(udph->source));
     strcat(transport[total],curr);
     sprintf(curr, "   |-Destination Port : %d\n" , ntohs(udph->dest));
@@ -338,10 +372,10 @@ void print_udp_packet(unsigned char *Buffer , int Size)
     {        
         print_dns_header(Buffer, Size);
     }
-    printf("%s\n",transport[total] );
+    // printf("%s\n",transport[total] );
 
     sprintf(curr, "                        DATA Dump                         \n");
-    sprintf(curr,"%s",payload[total]);    
+    sprintf(payload[total],"%s",curr);    
     sprintf(curr, "IP Header\n");
     strcat(payload[total],curr);
     PrintData(Buffer,iphdrlen);
@@ -403,9 +437,9 @@ void print_icmp_packet(unsigned char* Buffer , int Size)
     //sprintf(logfile, "   |-ID       : %d\n",ntohs(icmph->id));
     //sprintf(logfile, "   |-Sequence : %d\n",ntohs(icmph->sequence));
     // sprintf(logfile, "\n");
-    printf("%s\n",network[total] );
+    // printf("%s\n",network[total] );
     sprintf(curr, "                        DATA Dump                         \n");
-    strcat(payload[total],curr);
+    sprintf(payload[total],"%s",curr); 
     sprintf(curr, "IP Header\n");
     strcat(payload[total],curr);
     PrintData(Buffer,iphdrlen);
@@ -438,7 +472,7 @@ void print_http_header(unsigned char* Buffer , int Size)
 
     int i;
     sprintf(curr, "HTTP Header\n");
-    sprintf(curr,"%s",app[total]);
+    sprintf(app[total],"%s",curr); 
     for (i = 0; i < http_size; ++i)
     {
         if (http_data[i] >= 32 && http_data[i] <= 128)
@@ -447,7 +481,7 @@ void print_http_header(unsigned char* Buffer , int Size)
             sprintf(curr, "\n");
         strcat(app[total],curr);
     }
-    printf("%s\n",app[total] );
+    // printf("%s\n",app[total] );
     // sprintf(buff_app,"%s",app[total]);
 }
 
@@ -525,7 +559,7 @@ void print_dns_header(unsigned char* Buffer , int Size)
     qname =(unsigned char*)&Buffer[sizeof(struct DNS_HEADER)];
     //move ahead of the dns header and the query field
     sprintf(curr, "DNS Header\n");
-    sprintf(curr,"%s",app[total]);
+    sprintf(app[total],"%s",curr); 
     reader = (Buffer+sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION));
     sprintf(curr, "\nThe response contains : ");
     strcat(app[total],curr);
@@ -612,7 +646,7 @@ void print_dns_header(unsigned char* Buffer , int Size)
     for(i=0 ; i < ntohs(dns->ans_count) ; i++)
     {
         sprintf(curr, "Name : %s ",answers[i].name);
-    strcat(app[total],curr);
+        strcat(app[total],curr);
 
         if( ntohs(answers[i].resource->type) == 1) //IPv4 address
         {
@@ -668,7 +702,7 @@ void print_dns_header(unsigned char* Buffer , int Size)
         }
         // sprintf(curr, "\n");
     }
-    printf("%s\n",app[total] );
+    // printf("%s\n",app[total] );
         // sprintf(buff_app,"%s",app[total]);
 }
  
@@ -731,7 +765,7 @@ void PrintData (unsigned char* data , int Size)
             strcat(payload[total],curr);
         }
     }
-    printf("%s\n",payload[total] );
+    // printf("%s\n",payload[total] );
 }
 
 
@@ -776,16 +810,174 @@ void initiateCapture()
             break;
         }
     }
-    for(int i=0;i<1000;i++)
+    FILE* fp=fopen("log(n).txt","w");
+    for (int i = 0; i < 1000; ++i)
     {
-        printf("%s\n", ethernet[i]);
-        printf("%s\n", network[i]);
-        printf("%s\n", transport[i]);
-        printf("%s\n", app[i]);
-        printf("%s\n", payload[i]);
+        fprintf(fp,"Position:%d\n",i );
+        fprintf(fp,"%s\n", ethernet[i]);
+        fprintf(fp,"%s\n", network[i]);
+        fprintf(fp,"%s\n", transport[i]);
+        fprintf(fp,"%s\n", app[i]);
+        fprintf(fp,"%s\n", payload[i]);
     }
+
     close(sock_raw);
     printf("\nFinished");
     return ;
+}
+
+int main( int   argc,
+          char *argv[] )
+{
+
+    GtkWidget *window,*scrolled_window,*table2;
+    GtkWidget *button,*text;
+    GtkWidget *table;
+    buff_ethernet=gtk_text_buffer_new(NULL);
+    buff_network=gtk_text_buffer_new(NULL);
+    buff_transport=gtk_text_buffer_new(NULL);
+    buff_app=gtk_text_buffer_new(NULL);
+    buff_payload=gtk_text_buffer_new(NULL);
+    gtk_init (&argc, &argv);
+
+    /* Create a new window */
+    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    gtk_widget_set_size_request (window, 1100, 700);
+    // gtk_window_fullscreen ((GtkWindow *)window);
+
+    /* Set the window title */
+    gtk_window_set_title (GTK_WINDOW (window), "P.C.A.T.");
+
+    /* Set a handler for delete_event that immediately
+     * exits GTK. */
+    g_signal_connect (window, "delete-event",
+                      G_CALLBACK (delete_event), NULL);
+
+    /* Sets the border width of the window. */
+    gtk_container_set_border_width (GTK_CONTAINER (window), 10);
+
+    /* Create a 2x2 table */
+    table = gtk_table_new (27, 23, TRUE);
+
+    /* Put the table in the main window */
+    gtk_container_add (GTK_CONTAINER (window), table);
+
+    gtk_widget_show (table);
+    scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+    
+    gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 5);
+
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+                                    GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+
+    gtk_table_attach(GTK_TABLE(table), scrolled_window, 21, 24, 0, 25, 
+        GTK_FILL, GTK_FILL, 0, 0);
+    gtk_widget_show (scrolled_window);
+    table2 = gtk_table_new (1000, 1, FALSE);
+    
+    /* set the spacing to 10 on x and 10 on y */
+    gtk_table_set_row_spacings (GTK_TABLE (table2), 5);
+    // gtk_table_set_col_spacings (GTK_TABLE (table2), 5);
+    
+    /* pack the table into the scrolled window */
+    gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), table2);
+    gtk_widget_show (table2);
+    /* Insert button 1 into the upper left quadrant of the table */
+    
+    for(int i=0;i<5;i++)
+    {
+        GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+        gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 5);
+
+        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+                                    GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+        gtk_table_attach(GTK_TABLE(table), scrolled_window,  0, 21, i*5, 5*i+5, 
+        GTK_FILL, GTK_FILL, 0, 0);
+        gtk_widget_show (scrolled_window);
+        if(i==0){
+            eth_text=gtk_text_view_new_with_buffer (buff_ethernet);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(eth_text), FALSE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(eth_text), TRUE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), eth_text);
+            gtk_widget_show (eth_text);
+        }
+        if(i==1){
+            net_text=gtk_text_view_new_with_buffer (buff_network);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(net_text), FALSE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(net_text), FALSE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), net_text);
+            gtk_widget_show (net_text);
+        }
+        if(i==2){
+            trans_text=gtk_text_view_new_with_buffer (buff_transport);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(trans_text), FALSE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(trans_text), FALSE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), trans_text);
+            gtk_widget_show (trans_text);
+        }
+        if(i==3)
+        {
+            app_text=gtk_text_view_new_with_buffer (buff_app);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(app_text), FALSE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(app_text), FALSE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), app_text);
+            gtk_widget_show (app_text);
+        }
+        if(i==4){
+            pay_text=gtk_text_view_new_with_buffer (buff_payload);
+            gtk_text_view_set_editable(GTK_TEXT_VIEW(pay_text), FALSE);
+            gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(pay_text), FALSE);
+            gtk_scrolled_window_add_with_viewport (GTK_SCROLLED_WINDOW (scrolled_window), pay_text);
+            gtk_widget_show (pay_text);
+        }
+    }
+    char buffer[10];
+    for (int i = 0; i < 1000; i++){
+       // for (j = 0; j < 10; j++) {
+          sprintf (buffer, "Packet %d\n", i+1);
+          button = gtk_button_new_with_label (buffer);
+          gtk_table_attach(GTK_TABLE(table2), button,0,1, i, i+1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 2, 1);
+          g_signal_connect (G_OBJECT(button), "clicked",
+                      G_CALLBACK (packet_display),NULL);
+          gtk_widget_show (button);
+          sprintf(transport[i],"%s","");
+          sprintf(network[i],"%s","");
+          sprintf(app[i],"%s","");
+          sprintf(ethernet[i],"%s","");
+          sprintf(payload[i],"%s","");
+       }
+    /* Create second button */
+       text=gtk_text_view_new();
+        gtk_text_view_set_editable(GTK_TEXT_VIEW(text), FALSE);
+        gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text), FALSE);
+        // gtk_table_attach(GTK_TABLE(table), text, 0, 10, i*2, 2*i+2, 
+        // GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 1, 1);
+        gtk_table_attach_defaults (GTK_TABLE (table), button, 0, 24, 26,27);
+        gtk_widget_show (text);
+
+
+    /* Create "Quit" button */
+    button = gtk_button_new_with_label ("Quit");
+   
+    /* When the button is clicked, we call the "delete-event" function
+     * and the program exits */
+    g_signal_connect (button, "clicked",G_CALLBACK (delete_event), NULL);
+
+    /* Insert the quit button into the both 
+     * lower quadrants of the table */
+    gtk_table_attach_defaults (GTK_TABLE (table), button, 21, 24, 26,27);
+    gtk_widget_show (button);
+    button = gtk_button_new_with_label ("Start");
+    g_signal_connect (button, "clicked",G_CALLBACK (trigger), NULL);
+    gtk_table_attach_defaults (GTK_TABLE (table), button, 12, 15, 26,27);
+    gtk_widget_show (button);
+
+    gtk_widget_show (table);
+    gtk_widget_show (window);
+
+    gtk_main ();
+
+    return 0;
 }
 
