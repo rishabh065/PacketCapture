@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include "pcat.h"
 #include <gtk/gtk.h>
-#include "pcat.h"
 #include <string.h>
 #include <stdlib.h>
 /* Our callback.
@@ -32,13 +31,18 @@ char network[1000][1000];
 char transport[1000][5000];
 char payload[1000][5000];
 char app[1000][1000];
+char name_button[1000][10];
 GtkTextBuffer *buff_ethernet;
 GtkTextBuffer *buff_network;
 GtkTextBuffer *buff_transport;
 GtkTextBuffer *buff_app;
 GtkTextBuffer *buff_payload;
-
-GtkWidget *net_text,*eth_text,*app_text,*pay_text,*trans_text;
+GtkTextBuffer *counter;
+GtkTextBuffer *stream;
+char cnt[200];
+GtkWidget *net_text,*eth_text,*app_text,*pay_text,*trans_text,
+*counter_text,*st_button,*ex_button;
+GtkWidget *button[1000];
 static gboolean delete_event( GtkWidget *widget, GdkEvent  *event, gpointer   data )
 {
     gtk_main_quit ();
@@ -48,6 +52,7 @@ static gboolean delete_event( GtkWidget *widget, GdkEvent  *event, gpointer   da
 static void trigger( GtkWidget *widget, GdkEvent  *event, gpointer   data )
 {
     initiateCapture();
+   
 }
 static void packet_display( GtkWidget *widget, GdkEvent  *event, gpointer   data )
 {
@@ -66,7 +71,7 @@ void button_clicked(GtkWidget *widget, gpointer data)
 }
 
 char curr[5000];
-int counter[1000][4];
+
 FILE *logfile;
 struct sockaddr_in source,dest;
 int tcp=0,udp=0,icmp=0,others=0,igmp=0,total=0,i,j;
@@ -145,7 +150,12 @@ struct ARPhdr
 
 void ProcessPacket(unsigned char* buffer, int size)
 {
-    
+    sprintf(ethernet[total], "%s"," ");
+    sprintf(network[total], "%s"," ");
+    sprintf(transport[total], "%s"," ");
+    sprintf(app[total], "%s"," ");
+    sprintf(payload[total], "%s"," ");
+
     struct ethhdr *ehdr = (struct ethhdr*)(buffer);
     if (ehdr->h_proto == 1544)
     {
@@ -179,7 +189,10 @@ void ProcessPacket(unsigned char* buffer, int size)
             break;
     }
     ++total;
-    printf("\nTCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d\r", tcp , udp , icmp , igmp , others , total);
+    
+    sprintf(cnt,"TCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d", tcp , udp , icmp , igmp , others , total);
+    printf("%s\n",cnt );
+    
     // sprintf(stdout);
 }
  
@@ -196,6 +209,7 @@ void print_ethernet_header(unsigned char* Buffer, int Size)
     strcat(ethernet[total],curr);
     sprintf(curr, "   |-Protocol            : %u \n",(unsigned short)eth->h_proto);
     strcat(ethernet[total],curr);
+    sprintf(name_button[total],"%s","ETH" );
     // printf("%s\n",ethernet[total] );
 }
 
@@ -225,6 +239,7 @@ void print_arp_packet(unsigned char* Buffer, int Size)
     strcat(network[total],curr);
     sprintf(curr , "   |-Destination IP address     : %d.%d.%d.%d \n",arph->ar_tip[0],arph->ar_tip[1],arph->ar_tip[2],arph->ar_tip[3]);
     strcat(network[total],curr);
+    sprintf(name_button[total],"%s","ARP" );
     // printf("%s\n",network[total] );
 }
  
@@ -239,7 +254,7 @@ void print_ip_header(unsigned char* Buffer, int Size)
      
     memset(&dest, 0, sizeof(dest));
     dest.sin_addr.s_addr = iph->daddr;
-     
+    sprintf(name_button[total],"%s","IP" );
     // sprintf(logfile, "\n");
     sprintf(curr, "IP Header\n");
     sprintf(network[total],"%s",curr);
@@ -317,6 +332,7 @@ void print_tcp_packet(unsigned char* Buffer, int Size)
     sprintf(curr, "   |-Urgent Pointer : %d\n",tcph->urg_ptr);
     strcat(transport[total],curr);
     // sprintf(logfile, "\n");
+    sprintf(name_button[total],"%s","TCP" );
     if (ntohs(tcph->source) == 80 || ntohs(tcph->dest) == 80)
     {
         print_http_header(Buffer, Size);
@@ -326,6 +342,7 @@ void print_tcp_packet(unsigned char* Buffer, int Size)
     {
         print_dns_header(Buffer, Size);
     }
+
     // printf("%s\n",transport[total] );
     sprintf(curr, "                        DATA Dump                         \n");
     sprintf(payload[total],"%s",curr);    
@@ -368,11 +385,13 @@ void print_udp_packet(unsigned char *Buffer , int Size)
     strcat(transport[total],curr);
     sprintf(curr, "   |-UDP Checksum     : %d\n" , ntohs(udph->check));
     strcat(transport[total],curr);
+    sprintf(name_button[total],"%s","UDP" );
     if (ntohs(udph->source) == 53 || ntohs(udph->dest) == 53)
     {        
         print_dns_header(Buffer, Size);
     }
     // printf("%s\n",transport[total] );
+    
 
     sprintf(curr, "                        DATA Dump                         \n");
     sprintf(payload[total],"%s",curr);    
@@ -452,6 +471,7 @@ void print_icmp_packet(unsigned char* Buffer , int Size)
     strcat(payload[total],curr);
     //Move the pointer ahead and reduce the size of string
     PrintData(Buffer + header_size , (Size - header_size) );
+    sprintf(name_button[total],"%s","ICMP" );
     // sprintf(curr, "\n###########################################################");
 }
 
@@ -481,6 +501,7 @@ void print_http_header(unsigned char* Buffer , int Size)
             sprintf(curr, "\n");
         strcat(app[total],curr);
     }
+    sprintf(name_button[total],"%s","HTTP" );
     // printf("%s\n",app[total] );
     // sprintf(buff_app,"%s",app[total]);
 }
@@ -704,6 +725,7 @@ void print_dns_header(unsigned char* Buffer , int Size)
     }
     // printf("%s\n",app[total] );
         // sprintf(buff_app,"%s",app[total]);
+    sprintf(name_button[total],"%s","DNS" );
 }
  
 void PrintData (unsigned char* data , int Size)
@@ -765,7 +787,7 @@ void PrintData (unsigned char* data , int Size)
             strcat(payload[total],curr);
         }
     }
-    // printf("%s\n",payload[total] );
+    
 }
 
 
@@ -820,9 +842,11 @@ void initiateCapture()
         fprintf(fp,"%s\n", app[i]);
         fprintf(fp,"%s\n", payload[i]);
     }
-
+    gtk_text_buffer_set_text(counter,cnt ,strlen(cnt));
+    
     close(sock_raw);
     printf("\nFinished");
+
     return ;
 }
 
@@ -831,13 +855,15 @@ int main( int   argc,
 {
 
     GtkWidget *window,*scrolled_window,*table2;
-    GtkWidget *button,*text;
+    
     GtkWidget *table;
     buff_ethernet=gtk_text_buffer_new(NULL);
     buff_network=gtk_text_buffer_new(NULL);
     buff_transport=gtk_text_buffer_new(NULL);
     buff_app=gtk_text_buffer_new(NULL);
     buff_payload=gtk_text_buffer_new(NULL);
+    counter=gtk_text_buffer_new(NULL);
+    stream=gtk_text_buffer_new(NULL);
     gtk_init (&argc, &argv);
 
     /* Create a new window */
@@ -859,7 +885,7 @@ int main( int   argc,
 
     /* Create a 2x2 table */
     table = gtk_table_new (27, 23, TRUE);
-
+    gtk_widget_show (table);
     /* Put the table in the main window */
     gtk_container_add (GTK_CONTAINER (window), table);
 
@@ -936,44 +962,53 @@ int main( int   argc,
     for (int i = 0; i < 1000; i++){
        // for (j = 0; j < 10; j++) {
           sprintf (buffer, "Packet %d\n", i+1);
-          button = gtk_button_new_with_label (buffer);
-          gtk_table_attach(GTK_TABLE(table2), button,0,1, i, i+1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 2, 1);
-          g_signal_connect (G_OBJECT(button), "clicked",
+          button[i] = gtk_button_new_with_label (buffer);
+          gtk_table_attach(GTK_TABLE(table2), button[i],0,1, i, i+1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 2, 1);
+          g_signal_connect (G_OBJECT(button[i]), "clicked",
                       G_CALLBACK (packet_display),NULL);
-          gtk_widget_show (button);
+          gtk_widget_show (button[i]);
           sprintf(transport[i],"%s","");
           sprintf(network[i],"%s","");
           sprintf(app[i],"%s","");
           sprintf(ethernet[i],"%s","");
           sprintf(payload[i],"%s","");
        }
-    /* Create second button */
-       text=gtk_text_view_new();
-        gtk_text_view_set_editable(GTK_TEXT_VIEW(text), FALSE);
-        gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text), FALSE);
-        // gtk_table_attach(GTK_TABLE(table), text, 0, 10, i*2, 2*i+2, 
-        // GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 1, 1);
-        gtk_table_attach_defaults (GTK_TABLE (table), button, 0, 24, 26,27);
-        gtk_widget_show (text);
+    /* Create second button[i] */
+       // text=gtk_text_view_new();
+       //  gtk_text_view_set_editable(GTK_TEXT_VIEW(text), FALSE);
+       //  gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text), FALSE);
+       //  // gtk_table_attach(GTK_TABLE(table), text, 0, 10, i*2, 2*i+2, 
+       //  // GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 1, 1);
+       //  gtk_table_attach_defaults (GTK_TABLE (table), text, 0, 24, 26,27);
+       //  gtk_widget_show (text);
 
 
     /* Create "Quit" button */
-    button = gtk_button_new_with_label ("Quit");
+    ex_button = gtk_button_new_with_label ("Quit");
    
     /* When the button is clicked, we call the "delete-event" function
      * and the program exits */
-    g_signal_connect (button, "clicked",G_CALLBACK (delete_event), NULL);
+    g_signal_connect (ex_button, "clicked",G_CALLBACK (delete_event), NULL);
 
     /* Insert the quit button into the both 
      * lower quadrants of the table */
-    gtk_table_attach_defaults (GTK_TABLE (table), button, 21, 24, 26,27);
-    gtk_widget_show (button);
-    button = gtk_button_new_with_label ("Start");
-    g_signal_connect (button, "clicked",G_CALLBACK (trigger), NULL);
-    gtk_table_attach_defaults (GTK_TABLE (table), button, 12, 15, 26,27);
-    gtk_widget_show (button);
+    gtk_table_attach_defaults (GTK_TABLE (table), ex_button, 21, 24, 26,27);
+    gtk_widget_show (ex_button);
+    st_button = gtk_button_new_with_label ("Start");
+    g_signal_connect (st_button, "clicked",G_CALLBACK (trigger), NULL);
+    gtk_table_attach_defaults (GTK_TABLE (table), st_button, 18, 21, 26,27);
+    gtk_widget_show (st_button);
 
-    gtk_widget_show (table);
+    GtkWidget *stream_text=gtk_text_view_new_with_buffer (stream);
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(stream_text), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(stream_text), FALSE);
+    gtk_table_attach_defaults (GTK_TABLE (table), stream_text, 11, 15, 26,27);
+    gtk_widget_show (stream_text);
+    counter_text=gtk_text_view_new_with_buffer (counter);
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(counter_text), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(counter_text), FALSE);
+    gtk_table_attach_defaults (GTK_TABLE (table), counter_text, 0, 10, 26,27);
+    gtk_widget_show (counter_text);
     gtk_widget_show (window);
 
     gtk_main ();
